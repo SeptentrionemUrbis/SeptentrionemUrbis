@@ -1,0 +1,86 @@
+import cv2
+import mediapipe as mp
+import random
+
+def process_landmarks(frame, landmarks, rock_threshold=0.33, paper_threshold=0.66, scissors_threshold=0.33):
+  if landmarks:
+    index_tip = landmarks.landmark[8]
+    x_tip, y_tip = int(index_tip.x * frame.shape[1]), int(index_tip.y * frame.shape[0])
+    if x_tip < frame.shape[1] * rock_threshold and y_tip < frame.shape[0] // 3:
+      gesture = "tas"
+    elif x_tip > frame.shape[1] * paper_threshold and y_tip < frame.shape[0] // 3:
+      gesture = "makas"
+    else:
+      gesture = "kagit"
+    return gesture
+  else:
+    return None
+
+def draw_landmarks(frame, hand_landmarks):
+  for landmark in hand_landmarks.landmark:
+    x = int(landmark.x * frame.shape[1])
+    y = int(landmark.y * frame.shape[0])
+    cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)
+
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands()
+cap = cv2.VideoCapture(0)
+
+gesture_threshold = 5
+print("Tas (sol taraf), kagit (sag taraf), veya makas (orta) gosterin.")
+
+user_score = 0
+computer_score = 0
+
+while cap.isOpened():
+  ret, frame = cap.read()
+
+  if not ret:
+    continue
+
+  frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+  results = hands.process(frame_rgb)
+
+  gesture = None
+  gesture_count = {"tas": 0, "kagit": 0, "makas": 0}
+
+  if results.multi_hand_landmarks:
+    for hand_landmarks in results.multi_hand_landmarks:
+      draw_landmarks(frame, hand_landmarks)
+      gesture = process_landmarks(frame, hand_landmarks)
+      if gesture:
+        gesture_count[gesture] += 1
+        for key, value in gesture_count.items():
+          if key != gesture:
+            gesture_count[key] = 0
+      else:
+        gesture_count = {"tas": 0, "kagit": 0, "makas": 0}
+
+  if max(gesture_count.values()) >= gesture_threshold:
+    winning_gesture = max(gesture_count, key=gesture_count.get)
+    computer_choice = random.choice(["tas", "kagit", "makas"])
+    message = f"Siz {winning_gesture.upper()} oynadiniz! "
+    if winning_gesture == computer_choice:
+      message += "Beraberlik!"
+    elif (winning_gesture == "tas" and computer_choice == "makas") or \
+         (winning_gesture == "kagit" and computer_choice == "tas") or \
+         (winning_gesture == "makas" and computer_choice == "kagit"):
+      message += "Kazandiniz!"
+      user_score += 1
+    else:
+      message += f"Kaybettiniz! Bilgisayar {computer_choice} oynadi."
+      computer_score += 1
+
+    
+    text_x, text_y = 10, 30
+    print(f"Text position: ({text_x}, {text_y})")
+    cv2.putText(frame, message, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+  cv2.imshow('Rock Paper Scissors', frame)
+
+  if cv2.waitKey(1) & 0xFF == ord('q'):
+    break
+
+cap.release()
+cv2.destroyAllWindows()
