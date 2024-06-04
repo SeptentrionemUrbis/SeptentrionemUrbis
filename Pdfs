@@ -1,5 +1,4 @@
-import requests
-from bs4 import BeautifulSoup
+import urllib.request
 
 def download_pdfs(url):
   """Downloads PDFs from a website.
@@ -8,14 +7,14 @@ def download_pdfs(url):
     url: The URL of the website containing the PDFs.
   """
   # Send an HTTP request to retrieve the webpage content
-  response = requests.get(url)
-  response.raise_for_status()  # Raise an exception for unsuccessful requests
+  response = urllib.request.urlopen(url)
 
-  # Parse the HTML content using BeautifulSoup
-  soup = BeautifulSoup(response.content, 'html.parser')
+  # Read the webpage content
+  html_content = response.read()
 
-  # Extract all anchor tags containing PDF links
-  pdf_links = [a['href'] for a in soup.find_all('a') if a.get('href') and a['href'].endswith('.pdf')]
+  # Parse the HTML content using regular expressions (assuming simpler HTML structure)
+  import re
+  pdf_links = re.findall(r'(?i)<a[^>]+href="([^"]+\.pdf)"', html_content.decode('utf-8'))
 
   # Iterate through each link and download the PDF
   for link in pdf_links:
@@ -29,8 +28,7 @@ def download_pdf(pdf_url):
     pdf_url: The URL of the PDF to download.
   """
   # Send an HTTP request to retrieve the PDF content
-  response = requests.get(pdf_url, stream=True)
-  response.raise_for_status()
+  response = urllib.request.urlopen(pdf_url)
 
   # Get the filename from the response headers (if available)
   filename = pdf_url.split('/')[-1]  # Extract filename from URL as a fallback
@@ -40,8 +38,7 @@ def download_pdf(pdf_url):
 
   # Save the downloaded PDF
   with open(filename, 'wb') as f:
-    for chunk in response.iter_content(1024):
-      f.write(chunk)
+    f.write(response.read())
 
   print(f"Downloaded PDF: {filename}")
 
