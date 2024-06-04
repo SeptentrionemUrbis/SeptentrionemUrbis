@@ -1,0 +1,50 @@
+import requests
+from bs4 import BeautifulSoup
+
+def download_pdfs(url):
+  """Downloads PDFs from a website.
+
+  Args:
+    url: The URL of the website containing the PDFs.
+  """
+  # Send an HTTP request to retrieve the webpage content
+  response = requests.get(url)
+  response.raise_for_status()  # Raise an exception for unsuccessful requests
+
+  # Parse the HTML content using BeautifulSoup
+  soup = BeautifulSoup(response.content, 'html.parser')
+
+  # Extract all anchor tags containing PDF links
+  pdf_links = [a['href'] for a in soup.find_all('a') if a.get('href') and a['href'].endswith('.pdf')]
+
+  # Iterate through each link and download the PDF
+  for link in pdf_links:
+    pdf_url = url + link if not link.startswith('http') else link  # Handle relative and absolute URLs
+    download_pdf(pdf_url)
+
+def download_pdf(pdf_url):
+  """Downloads a PDF from a URL.
+
+  Args:
+    pdf_url: The URL of the PDF to download.
+  """
+  # Send an HTTP request to retrieve the PDF content
+  response = requests.get(pdf_url, stream=True)
+  response.raise_for_status()
+
+  # Get the filename from the response headers (if available)
+  filename = pdf_url.split('/')[-1]  # Extract filename from URL as a fallback
+  content_disposition = response.headers.get('Content-Disposition')
+  if content_disposition:
+    filename = content_disposition.split('filename=')[-1].strip('"')
+
+  # Save the downloaded PDF
+  with open(filename, 'wb') as f:
+    for chunk in response.iter_content(1024):
+      f.write(chunk)
+
+  print(f"Downloaded PDF: {filename}")
+
+# Example usage
+website_url = "https://www.example.com/"  # Replace with the actual website URL
+download_pdfs(website_url)
