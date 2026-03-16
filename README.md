@@ -1,6 +1,6 @@
 - 👋 northern star
-- 🌱 Learning python and cyber security, excelling at cisco and prompt engineering.
-- 📫 to reach out : akahmetoktay@gmail.com
+- 🌱 Learning Python and cybersecurity, excelling at Cisco and prompt engineering.
+- 📫 to reach out: ahmetoktay13ak@gmail.com
 
 
 
